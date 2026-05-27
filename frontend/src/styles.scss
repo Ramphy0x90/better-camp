@@ -1,0 +1,82 @@
+@use "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+// ─── Dark theme overrides ────────────────────────────────────────────────────
+[data-bs-theme="dark"] {
+  // Base
+  --bs-body-bg:            #0d1117;
+  --bs-body-color:         #c9d1d9;
+  --bs-secondary-color:    #8b949e;
+
+  // Surfaces
+  --bs-tertiary-bg:        #161b22;
+  --bs-secondary-bg:       #161b22;
+  --bs-emphasis-color:     #f0f6fc;
+
+  // Borders
+  --bs-border-color:       #30363d;
+  --bs-border-color-translucent: rgba(48, 54, 61, 0.8);
+
+  // Cards
+  --bs-card-bg:            #161b22;
+  --bs-card-border-color:  #30363d;
+  --bs-card-cap-bg:        #1c2128;
+
+  // Accordion
+  --bs-accordion-bg:            #161b22;
+  --bs-accordion-border-color:  #30363d;
+  --bs-accordion-btn-bg:        #1c2128;
+  --bs-accordion-btn-color:     #c9d1d9;
+  --bs-accordion-active-bg:     #1c2128;
+  --bs-accordion-active-color:  #58a6ff;
+  --bs-accordion-body-bg:       #161b22;
+
+  // List groups
+  --bs-list-group-bg:           #161b22;
+  --bs-list-group-border-color: #30363d;
+  --bs-list-group-color:        #c9d1d9;
+
+  // Inputs / forms
+  --bs-form-check-bg: #161b22;
+
+  // Links & primary
+  --bs-link-color:       #58a6ff;
+  --bs-link-hover-color: #79b8ff;
+  --bs-primary-bg-subtle: rgba(88, 166, 255, 0.12);
+
+  // Nav / sidebar active highlight
+  --bc-nav-active-bg:   rgba(88, 166, 255, 0.12);
+  --bc-nav-active-color: #58a6ff;
+
+  // Shadows look better with subtle blue tint
+  --bs-box-shadow:      0 1px 3px rgba(0, 0, 0, 0.6);
+  --bs-box-shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.5);
+  --bs-box-shadow-lg:   0 4px 16px rgba(0, 0, 0, 0.7);
+
+  // Badge / secondary muted
+  --bs-secondary-bg-subtle: rgba(139, 148, 158, 0.12);
+
+  // Scrollbar (webkit)
+  scrollbar-color: #30363d #0d1117;
+}
+
+// Light theme scrollbar
+[data-bs-theme="light"] {
+  scrollbar-color: #d0d7de #f6f8fa;
+}
+
+// ─── Smooth theme transition ─────────────────────────────────────────────────
+*, *::before, *::after {
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              color 0.1s ease, box-shadow 0.15s ease;
+}
+// Don't animate transforms / layout (would break drag-drop)
+.cdk-drag, .cdk-drag-preview, .kanban-card {
+  transition: box-shadow 0.15s ease, transform 0.1s ease !important;
+}

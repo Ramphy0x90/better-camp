@@ -1,0 +1,170 @@
+@if (todo()) {
+  <div class="modal d-block" tabindex="-1" (click)="onBackdrop($event)">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+
+        <!-- Header -->
+        <div class="modal-header border-bottom">
+          <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+            @if (todo()!.item_type === 'card') {
+              <span class="badge bg-secondary">Card</span>
+            } @else {
+              <span class="badge bg-primary">Todo</span>
+            }
+            <h5 class="modal-title text-truncate mb-0">
+              {{ detail()?.title ?? todo()!.title }}
+            </h5>
+          </div>
+          <button type="button" class="btn-close ms-3" (click)="close()"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="d-flex justify-content-center py-5">
+              <div class="spinner-border text-primary"></div>
+            </div>
+          } @else if (error()) {
+            <div class="alert alert-danger">{{ error() }}</div>
+          } @else if (detail(); as d) {
+
+            <!-- Meta row -->
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6">
+                <div class="small text-muted mb-1">Project</div>
+                <div class="fw-medium">{{ todo()!.bucket?.name ?? '—' }}</div>
+              </div>
+              <div class="col-sm-6">
+                <div class="small text-muted mb-1">List</div>
+                <div class="fw-medium">{{ todo()!.todolist?.['title'] ?? '—' }}</div>
+              </div>
+              <div class="col-sm-6">
+                <div class="small text-muted mb-1">Due date</div>
+                <div class="fw-medium">{{ formatDate(d.due_on) }}</div>
+              </div>
+              <div class="col-sm-6">
+                <div class="small text-muted mb-1">Status</div>
+                <div>
+                  @if (d.completed) {
+                    <span class="badge bg-success">Completed</span>
+                  } @else {
+                    <span class="badge bg-secondary">Open</span>
+                  }
+                </div>
+              </div>
+              @if (d.assignees.length > 0) {
+                <div class="col-12">
+                  <div class="small text-muted mb-1">Assignees</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    @for (a of d.assignees; track a.id) {
+                      <div class="d-flex align-items-center gap-1">
+                        @if (a.avatar_url) {
+                          <img [src]="a.avatar_url" class="rounded-circle" width="20" height="20" [alt]="a.name">
+                        }
+                        <span class="small">{{ a.name }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+              @if (d.creator) {
+                <div class="col-sm-6">
+                  <div class="small text-muted mb-1">Created by</div>
+                  <div class="d-flex align-items-center gap-1">
+                    @if (d.creator.avatar_url) {
+                      <img [src]="d.creator.avatar_url" class="rounded-circle" width="20" height="20" [alt]="d.creator.name">
+                    }
+                    <span class="small fw-medium">{{ d.creator.name }}</span>
+                    <span class="small text-muted">· {{ formatDate(d.created_at) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Description -->
+            @if (d.description) {
+              <div class="mb-4">
+                <div class="small text-muted text-uppercase fw-semibold mb-2 letter-spacing">Description</div>
+                <div class="bc-description p-3 rounded border"
+                     [innerHTML]="safeHtml(d.description)"></div>
+              </div>
+            }
+
+            <!-- Comments -->
+            <div>
+              <div class="small text-muted text-uppercase fw-semibold mb-3 letter-spacing">
+                Comments ({{ d.comments.length }})
+              </div>
+
+              @if (d.comments.length === 0) {
+                <p class="text-muted small">No comments yet.</p>
+              } @else {
+                <div class="d-flex flex-column gap-3">
+                  @for (c of d.comments; track c.id) {
+                    <div class="d-flex gap-3">
+                      @if (c.creator?.avatar_url) {
+                        <img [src]="c.creator!.avatar_url" class="rounded-circle flex-shrink-0"
+                             width="32" height="32" [alt]="c.creator!.name">
+                      } @else {
+                        <div class="rounded-circle bg-secondary flex-shrink-0 d-flex align-items-center justify-content-center"
+                             style="width:32px;height:32px">
+                          <i class="bi bi-person-fill text-white small"></i>
+                        </div>
+                      }
+                      <div class="flex-grow-1">
+                        <div class="d-flex align-items-baseline gap-2 mb-1">
+                          <span class="fw-semibold small">{{ c.creator?.name ?? 'Unknown' }}</span>
+                          <span class="text-muted" style="font-size:0.75rem">{{ formatDateTime(c.created_at) }}</span>
+                        </div>
+                        <div class="bc-comment" [innerHTML]="safeHtml(c.content)"></div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Post a comment -->
+            <div class="mt-3">
+              <textarea
+                class="form-control form-control-sm"
+                rows="3"
+                placeholder="Write a comment…"
+                [ngModel]="newComment()"
+                (ngModelChange)="newComment.set($event)"
+                [disabled]="posting()"
+              ></textarea>
+              @if (postError()) {
+                <div class="text-danger small mt-1">{{ postError() }}</div>
+              }
+              <div class="d-flex justify-content-end mt-2">
+                <button
+                  class="btn btn-primary btn-sm"
+                  [disabled]="!newComment().trim() || posting()"
+                  (click)="submitComment()"
+                >
+                  @if (posting()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                  }
+                  Post
+                </button>
+              </div>
+            </div>
+
+            <!-- Open in Basecamp link -->
+            @if (d.app_url) {
+              <div class="mt-4 pt-3 border-top">
+                <a [href]="d.app_url" target="_blank" rel="noopener"
+                   class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Open in Basecamp
+                </a>
+              </div>
+            }
+          }
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

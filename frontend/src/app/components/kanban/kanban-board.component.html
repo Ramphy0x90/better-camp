@@ -1,0 +1,87 @@
+<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+  <h4 class="mb-0 fw-semibold">{{ boardTitle() }}</h4>
+  <select class="form-select form-select-sm ms-auto" style="max-width:200px"
+          [ngModel]="selectedPersonId()?.toString() ?? ''"
+          (ngModelChange)="onPersonChange($event)">
+    <option value="">Me</option>
+    @for (p of people(); track p.id) {
+      <option [value]="p.id.toString()">{{ p.name }}</option>
+    }
+  </select>
+  <select class="form-select form-select-sm" style="max-width:150px"
+          [ngModel]="sortBy()"
+          (ngModelChange)="onSortChange($event)">
+    <option value="priority">Priority</option>
+    <option value="due_date">Due date</option>
+    <option value="assignee">Assignee</option>
+  </select>
+  <button class="btn btn-sm btn-outline-secondary" (click)="load()">
+    <i class="bi bi-arrow-clockwise"></i>
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="d-flex justify-content-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading…</span>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger">{{ error() }}</div>
+} @else {
+  <div class="kanban-board d-flex gap-3 pb-3">
+    @for (col of columns; track col.id) {
+      <div class="kanban-column card">
+        <div class="card-header border-bottom-0 d-flex align-items-center gap-2"
+             [ngClass]="'border-top border-top-3 ' + col.colorClass">
+          <span class="fw-semibold">{{ col.label }}</span>
+          <span class="badge bg-secondary ms-auto rounded-pill">{{ cards()[col.id].length }}</span>
+        </div>
+        <div
+          class="kanban-drop-zone card-body p-2 d-flex flex-column gap-2"
+          cdkDropList
+          [id]="col.id"
+          [cdkDropListData]="cards()[col.id]"
+          [cdkDropListConnectedTo]="columnIds"
+          (cdkDropListDropped)="drop($event, col.id)">
+
+          @for (todo of cards()[col.id]; track todo.id) {
+            <div class="kanban-card card shadow-sm" cdkDrag [cdkDragData]="todo"
+                 (cdkDragStarted)="onDragStarted()"
+                 (click)="openDetail(todo)">
+              <div class="card-body p-3">
+                <p class="mb-1 fw-medium lh-sm">{{ todo.title }}</p>
+                @if (todo.bucket?.['name']) {
+                  <small class="text-muted d-block mb-1">
+                    <i class="bi bi-folder2"></i> {{ todo.bucket!['name'] }}
+                  </small>
+                }
+                <div class="d-flex flex-wrap gap-1 mt-2">
+                  @if (todo.due_on) {
+                    <span class="badge"
+                          [class.bg-danger]="isOverdue(todo)"
+                          [class.bg-warning]="isDueSoon(todo) && !isOverdue(todo)"
+                          [class.text-dark]="isDueSoon(todo) && !isOverdue(todo)"
+                          [class.bg-secondary]="!isOverdue(todo) && !isDueSoon(todo)">
+                      <i class="bi bi-calendar3"></i> {{ todo.due_on }}
+                    </span>
+                  }
+                  @for (a of todo.assignees; track a.id) {
+                    <span class="badge bg-info text-dark">{{ a.name }}</span>
+                  }
+                </div>
+              </div>
+              <div *cdkDragPlaceholder class="kanban-card-placeholder rounded"></div>
+            </div>
+          }
+
+          @if (cards()[col.id].length === 0) {
+            <div class="text-center text-muted small py-3 opacity-50">Drop here</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<app-todo-detail-modal [todo]="selectedTodo()" (closed)="selectedTodo.set(null)" />

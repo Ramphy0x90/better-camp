@@ -1,0 +1,106 @@
+<div class="sidebar d-flex flex-column h-100 p-3">
+  <div class="sidebar-brand d-flex align-items-center gap-2 mb-4 px-1">
+    <span class="fs-5 fw-bold text-primary">BetterCamp</span>
+  </div>
+
+  <nav class="nav flex-column gap-1 mb-4">
+    <a class="nav-link d-flex align-items-center gap-2 rounded"
+       routerLink="/kanban"
+       routerLinkActive="active">
+      <i class="bi bi-kanban"></i>
+      My Assignments
+    </a>
+    <a class="nav-link d-flex align-items-center gap-2 rounded"
+       routerLink="/dashboard"
+       routerLinkActive="active">
+      <i class="bi bi-bar-chart-line"></i>
+      Dashboard
+    </a>
+    <a class="nav-link d-flex align-items-center gap-2 rounded"
+       routerLink="/settings"
+       routerLinkActive="active">
+      <i class="bi bi-gear"></i>
+      Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-section-label text-uppercase small fw-semibold text-muted px-1 mb-2">
+    Projects
+  </div>
+
+  <nav class="nav flex-column gap-1 flex-grow-1" style="overflow-y:auto;overflow-x:hidden">
+    @for (project of projects(); track project.id) {
+      <a class="nav-link d-flex align-items-center gap-2 rounded text-truncate"
+         [routerLink]="['/projects', project.id]"
+         routerLinkActive="active"
+         [title]="project.name">
+        <i class="bi bi-folder2"></i>
+        <span class="text-truncate">{{ project.name }}</span>
+      </a>
+    }
+    @if (projects().length === 0) {
+      <div class="px-1 text-muted small">Loading…</div>
+    }
+  </nav>
+
+  <div class="mt-auto pt-3 border-top position-relative">
+
+    <!-- Notifications panel (dropup) -->
+    @if (notifOpen()) {
+      <div class="notif-panel border rounded shadow-sm mb-2 overflow-auto"
+           style="max-height:340px">
+        @if (notifLoading()) {
+          <div class="d-flex justify-content-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+          </div>
+        } @else if (notifError()) {
+          <p class="text-danger small text-center py-3 mb-0">{{ notifError() }}</p>
+        } @else if (notifications().length === 0) {
+          <p class="text-muted small text-center py-3 mb-0">No notifications.</p>
+        } @else {
+          @for (n of notifications(); track n.id) {
+            <a [href]="n.app_url" target="_blank" rel="noopener"
+               class="notif-item d-block px-3 py-2 text-decoration-none"
+               [class.notif-unread]="!n.read">
+              <div class="small text-truncate" [class.fw-semibold]="!n.read">
+                @if (n.creator) {<span>{{ n.creator.name }} — </span>}{{ n.title }}
+              </div>
+              <div class="text-muted text-truncate" style="font-size:0.7rem">
+                @if (n.project_name) {<span>{{ n.project_name }} · </span>}{{ formatDateTime(n.created_at) }}
+              </div>
+            </a>
+          }
+        }
+      </div>
+    }
+
+    <div class="d-flex align-items-center gap-2">
+      @if (me()?.avatar_url) {
+        <img [src]="me()!.avatar_url" class="rounded-circle" width="32" height="32" [alt]="me()!.name">
+      } @else {
+        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+             style="width:32px;height:32px">
+          <i class="bi bi-person-fill text-white small"></i>
+        </div>
+      }
+      <div class="flex-grow-1 overflow-hidden">
+        <div class="small fw-semibold text-truncate">{{ me()?.name ?? '…' }}</div>
+      </div>
+      <button class="btn btn-sm btn-link p-0 text-muted" (click)="theme.toggle()" title="Toggle theme">
+        <i class="bi" [class.bi-moon-fill]="!theme.dark()" [class.bi-sun-fill]="theme.dark()"></i>
+      </button>
+      <button class="btn btn-sm btn-link p-0 text-muted position-relative" (click)="toggleNotif()" title="Notifications">
+        <i class="bi bi-bell-fill"></i>
+        @if (unreadCount > 0) {
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style="font-size:0.55rem;padding:2px 4px">
+            {{ unreadCount > 9 ? '9+' : unreadCount }}
+          </span>
+        }
+      </button>
+      <button class="btn btn-sm btn-link p-0 text-muted" (click)="logout()" title="Sign out">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>

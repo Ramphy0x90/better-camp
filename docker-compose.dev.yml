@@ -1,0 +1,21 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+      - backend-data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: build
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npx ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json
+    ports:
+      - "4200:4200"

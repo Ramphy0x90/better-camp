@@ -1,0 +1,94 @@
+.project-tab {
+  .pin-icon {
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    rotate: 45deg;
+    &.pinned { opacity: 1; color: var(--bs-warning); rotate: 0deg; }
+  }
+  &:hover .pin-icon { opacity: 0.7; }
+  &.active .pin-icon { opacity: 0.8; }
+}
+
+.tab-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bs-border-color) transparent;
+  padding-bottom: 4px; // keep pill shadows visible
+
+  ul { padding-bottom: 2px; }
+}
+
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover { transform: translateY(-2px); }
+  .stat-number { font-size: 2rem; font-weight: 700; line-height: 1; }
+}
+
+.stat-pill {
+  border-radius: 12px;
+  min-width: 120px;
+  .stat-pill-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+}
+
+.table-header th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+  background: var(--bs-tertiary-bg);
+}
+
+.list-group-header {
+  background: var(--bs-tertiary-bg);
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+}
+
+.issue-row {
+  transition: background 0.1s;
+  &:hover { background: var(--bs-tertiary-bg); }
+  &:last-child { border-bottom: none !important; }
+}
+
+.issue-link {
+  &:hover { color: var(--bs-link-color) !important; text-decoration: underline !important; }
+}
+
+.workload-bar {
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  position: relative;
+  background: var(--bs-border-color);
+
+  .workload-segment {
+    height: 100%;
+    min-width: 4px;
+    transition: width 0.3s ease;
+  }
+  .workload-bg {
+    flex: 1;
+    background: var(--bs-border-color);
+  }
+}
+
+.avatar-chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.cursor-pointer { cursor: pointer; }
+
+.project-picker {
+  animation: fadeIn 0.1s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,405 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+  <h4 class="mb-0 fw-semibold">Dashboard</h4>
+
+  <!-- Person filter -->
+  <select class="form-select form-select-sm" style="max-width:180px"
+          [ngModel]="selectedPersonId()?.toString() ?? ''"
+          (ngModelChange)="selectedPersonId.set($event ? +$event : undefined)">
+    <option value="">All people</option>
+    @for (p of people(); track p.id) {
+      <option [value]="p.id.toString()">{{ p.name }}</option>
+    }
+  </select>
+
+  <!-- "All" view project picker -->
+  <div class="position-relative ms-auto">
+    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+            (click)="showAllPicker.update(v => !v)">
+      <i class="bi bi-bar-chart-line"></i>
+      Overview projects ({{ allSelectedIds().length }})
+      <i class="bi bi-chevron-down small"></i>
+    </button>
+
+    @if (showAllPicker()) {
+      <div class="project-picker card shadow-lg position-absolute end-0 mt-1 p-3" style="min-width:230px;z-index:1050">
+        <div class="small fw-semibold text-muted text-uppercase mb-2" style="letter-spacing:.05em">
+          Include in Overview
+        </div>
+        @for (p of allProjects(); track p.id) {
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox"
+                   [id]="'all-' + p.id"
+                   [checked]="allSelectedIds().includes(p.id)"
+                   (change)="toggleAllProject(p.id)">
+            <label class="form-check-label small" [for]="'all-' + p.id">{{ p.name }}</label>
+          </div>
+        }
+        <button class="btn btn-sm btn-primary w-100 mt-3" (click)="applyAllPicker()">Apply</button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ── Loading projects list ─────────────────────────────────────────────── -->
+@if (projectsLoading()) {
+  <div class="d-flex justify-content-center py-5">
+    <div class="spinner-border text-primary"></div>
+  </div>
+} @else {
+
+  <!-- ── Project Tabs ───────────────────────────────────────────────────── -->
+  <div class="tab-scroll mb-4">
+    <ul class="nav nav-pills gap-1 flex-nowrap">
+      <!-- All tab (only shown when multiple projects selected) -->
+      @if (allSelectedIds().length > 1) {
+        <li class="nav-item flex-shrink-0">
+          <button class="nav-link d-flex align-items-center gap-2"
+                  [class.active]="activeTab() === 'all'"
+                  (click)="selectTab('all')">
+            <i class="bi bi-grid-3x3-gap"></i>Overview
+            @if (allLoading()) {
+              <span class="spinner-border spinner-border-sm"></span>
+            } @else {
+              <span class="badge rounded-pill ms-1"
+                    [class.bg-light]="activeTab() === 'all'"
+                    [class.text-dark]="activeTab() === 'all'"
+                    [class.bg-secondary]="activeTab() !== 'all'">
+                {{ allTotalStats().total }}
+              </span>
+            }
+          </button>
+        </li>
+      }
+
+      <!-- One tab per project -->
+      @for (p of sortedProjects(); track p.id) {
+        <li class="nav-item flex-shrink-0">
+          <button class="nav-link project-tab d-flex align-items-center gap-2"
+                  [class.active]="activeTab() === p.id"
+                  (click)="selectTab(p.id)">
+            @if (isPinned(p.id)) {
+              <i class="bi bi-pin-fill pin-icon pinned" (click)="togglePin(p.id, $event)" title="Unpin"></i>
+            } @else {
+              <i class="bi bi-pin pin-icon" (click)="togglePin(p.id, $event)" title="Pin to top"></i>
+            }
+            {{ p.name }}
+            @if (activeTab() === p.id && tabLoading()) {
+              <span class="spinner-border spinner-border-sm"></span>
+            } @else if (cachedTotal(p.id) >= 0) {
+              <span class="badge rounded-pill"
+                    [class.bg-light]="activeTab() === p.id"
+                    [class.text-dark]="activeTab() === p.id"
+                    [class.bg-secondary]="activeTab() !== p.id">
+                {{ cachedTotal(p.id) }}
+              </span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <!-- ── Tab content ───────────────────────────────────────────────────── -->
+
+  @if (activeTab() !== 'all' && tabLoading()) {
+    <div class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary"></div>
+    </div>
+  } @else if (tabError()) {
+    <div class="alert alert-danger">{{ tabError() }}</div>
+  } @else {
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ALL / OVERVIEW VIEW                                                  -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    @if (activeTab() === 'all') {
+
+      @if (allLoading() && allData().length === 0) {
+        <div class="d-flex justify-content-center py-5">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      } @else if (allData().length === 0) {
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-bar-chart-line fs-1 d-block mb-3 opacity-25"></i>
+          No data yet. Click a project tab first, then come back to Overview.
+        </div>
+      } @else {
+        <!-- Summary cards -->
+        <div class="row g-3 mb-4">
+          @for (card of [
+            {label:'Total Open', val: allTotalStats().total, cls:''},
+            {label:'Backlog',    val: allTotalStats().open,     cls:'text-secondary'},
+            {label:'In Progress',val: allTotalStats().progress, cls:'text-primary'},
+            {label:'In Review',  val: allTotalStats().review,   cls:'text-warning'},
+            {label:'Blocked',    val: allTotalStats().blocked,  cls:'text-danger'},
+            {label:'Done Lists', val: allTotalStats().done,     cls:'text-success'}
+          ]; track card.label) {
+            <div class="col-6 col-lg-2">
+              <div class="card border-0 shadow-sm stat-card text-center h-100">
+                <div class="card-body py-3">
+                  <div class="stat-number" [class]="card.cls">{{ card.val }}</div>
+                  <div class="small text-muted">{{ card.label }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Charts -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="section-label mb-3">Status Distribution</div>
+                <div style="height:280px"><canvas #statusCanvas></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="section-label mb-3">Workload by Person</div>
+                <div style="height:280px"><canvas #workloadCanvas></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-project summary table -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+              <thead class="bc-thead">
+                <tr>
+                  <th class="ps-4">Project</th>
+                  <th class="text-center">Total</th>
+                  @for (s of ['open','progress','review','blocked','done']; track s) {
+                    <th class="text-center d-none d-md-table-cell text-capitalize">{{ s }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of allData(); track p.project_id) {
+                  <tr class="cursor-pointer" (click)="selectTab(p.project_id)">
+                    <td class="ps-4 fw-medium">{{ p.project_name }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-secondary rounded-pill">{{ totalBugs(p) }}</span>
+                    </td>
+                    @for (s of ['open','progress','review','blocked','done']; track s) {
+                      <td class="text-center d-none d-md-table-cell">
+                        @if (countByStatus(p.lists, s) > 0) {
+                          <span class="badge rounded-pill" [class]="statusBadgeClass(s)">{{ countByStatus(p.lists, s) }}</span>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- All issues flat table -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header-row px-4 py-3 border-bottom">
+            <span class="fw-semibold">All Issues</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="bc-thead">
+                <tr>
+                  <th class="ps-4" style="width:38%">Title</th>
+                  <th>Project</th>
+                  <th>Status</th>
+                  <th>Assignees</th>
+                  <th>Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of allData(); track p.project_id) {
+                  @for (list of p.lists; track list.id) {
+                    @for (todo of list.todos; track todo.id) {
+                    @if (matchesPerson(todo)) {
+                      <tr>
+                        <td class="ps-4">
+                          @if (todo.app_url) {
+                            <a [href]="todo.app_url" target="_blank" rel="noopener"
+                               class="text-body text-decoration-none issue-link">{{ todo.title }}</a>
+                          } @else { {{ todo.title }} }
+                        </td>
+                        <td><span class="text-muted small">{{ p.project_name }}</span></td>
+                        <td>
+                          <span class="badge" [class]="statusBadgeClass(normalizeStatus(list.title))">{{ list.title }}</span>
+                        </td>
+                        <td>
+                          <div class="d-flex flex-wrap gap-1">
+                            @for (a of todo.assignees; track a.id) {
+                              <span class="d-inline-flex align-items-center gap-1" [title]="a.name">
+                                @if (a.avatar_url) {
+                                  <img [src]="a.avatar_url" [alt]="a.name" class="rounded-circle" width="18" height="18">
+                                } @else {
+                                  <span class="avatar-xs">{{ initials(a.name) }}</span>
+                                }
+                              </span>
+                            }
+                            @if (todo.assignees.length === 0) { <span class="text-muted small">—</span> }
+                          </div>
+                        </td>
+                        <td>
+                          @if (todo.due_on) {
+                            <span class="small" [class.text-danger]="isOverdue(todo)">{{ formatDate(todo.due_on) }}</span>
+                          } @else { <span class="text-muted small">—</span> }
+                        </td>
+                      </tr>
+                    }
+                    }
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- SINGLE PROJECT VIEW                                                  -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    @else if (activeProject(); as proj) {
+
+      <!-- Status pill cards -->
+      <div class="d-flex flex-wrap gap-2 mb-4">
+        @for (ls of listStats(); track ls.id) {
+          <div class="stat-pill card border-0 shadow-sm px-4 py-3 d-flex align-items-center gap-3">
+            <div class="stat-pill-dot" [style.background]="statusColor(ls.status)"></div>
+            <div>
+              <div class="fw-bold fs-5 lh-1">{{ ls.count }}</div>
+              <div class="small text-muted">{{ ls.title }}</div>
+            </div>
+          </div>
+        }
+        @if (listStats().length === 0) {
+          <div class="text-muted small py-2">No todo lists found in this project.</div>
+        }
+      </div>
+
+      <!-- Search -->
+      <div class="mb-4">
+        <div class="input-group input-group-sm" style="max-width:300px">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search issues…"
+                 [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)">
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- Issue list -->
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+              @for (ls of filteredListStats(); track ls.id) {
+                @if (ls.todos.length > 0) {
+                  <div class="list-group-header px-4 py-2 d-flex align-items-center gap-2 border-bottom">
+                    <span class="status-dot" [style.background]="statusColor(ls.status)"></span>
+                    <span class="fw-semibold small text-uppercase" style="letter-spacing:.05em">{{ ls.title }}</span>
+                    <span class="badge bg-secondary rounded-pill ms-1">{{ ls.todos.length }}</span>
+                  </div>
+                  @for (todo of ls.todos; track todo.id) {
+                    @if (matchesPerson(todo)) {
+                    <div class="issue-row px-4 py-3 d-flex align-items-start gap-3 border-bottom">
+                      <div class="flex-grow-1 min-w-0">
+                        @if (todo.app_url) {
+                          <a [href]="todo.app_url" target="_blank" rel="noopener"
+                             class="text-body text-decoration-none issue-link fw-medium lh-sm d-block mb-1">{{ todo.title }}</a>
+                        } @else {
+                          <div class="fw-medium lh-sm mb-1">{{ todo.title }}</div>
+                        }
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                          @for (a of todo.assignees; track a.id) {
+                            <div class="d-flex align-items-center gap-1">
+                              @if (a.avatar_url) {
+                                <img [src]="a.avatar_url" [alt]="a.name" class="rounded-circle" width="16" height="16">
+                              } @else {
+                                <span class="avatar-xs">{{ initials(a.name) }}</span>
+                              }
+                              <span class="small text-muted">{{ a.name }}</span>
+                            </div>
+                          }
+                          @if (todo.assignees.length === 0) {
+                            <span class="small text-muted fst-italic">Unassigned</span>
+                          }
+                        </div>
+                      </div>
+                      @if (todo.due_on) {
+                        <span class="badge flex-shrink-0"
+                              [class.bg-danger]="isOverdue(todo)"
+                              [class.bg-secondary]="!isOverdue(todo)">
+                          <i class="bi bi-calendar3 me-1"></i>{{ formatDate(todo.due_on) }}
+                        </span>
+                      }
+                    </div>
+                    }
+                  }
+                }
+              }
+              @if (filteredListStats().length === 0 && searchQuery()) {
+                <div class="text-center text-muted py-5">No issues match your search.</div>
+              }
+              @if (listStats().length > 0 && listStats().every(l => l.count === 0)) {
+                <div class="text-center text-muted py-5">All lists are empty.</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Team workload -->
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="section-label mb-3">Team ({{ assigneeStats().length }})</div>
+              @for (a of assigneeStats(); track a.id) {
+                <div class="mb-4">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    @if (a.avatar_url) {
+                      <img [src]="a.avatar_url" [alt]="a.name" class="rounded-circle" width="28" height="28">
+                    } @else {
+                      <div class="avatar-md rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-semibold"
+                           style="width:28px;height:28px;font-size:11px">{{ initials(a.name) }}</div>
+                    }
+                    <span class="small fw-semibold flex-grow-1">{{ a.name }}</span>
+                    <span class="badge bg-secondary rounded-pill">{{ a.total }}</span>
+                  </div>
+                  <div class="workload-bar">
+                    @for (b of a.byList; track b.listTitle) {
+                      <div class="workload-segment"
+                           [style.width.%]="(b.count / maxAssigneeTotal()) * 100"
+                           [style.background]="statusColor(b.status)"
+                           [title]="b.listTitle + ': ' + b.count">
+                      </div>
+                    }
+                  </div>
+                  <div class="d-flex flex-wrap gap-x-3 mt-1">
+                    @for (b of a.byList; track b.listTitle) {
+                      <span class="small text-muted me-2">{{ b.listTitle }}: {{ b.count }}</span>
+                    }
+                  </div>
+                </div>
+              }
+              @if (assigneeStats().length === 0) {
+                <p class="text-muted small">No assignees in this project.</p>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @else if (!tabLoading()) {
+      <!-- Project tab with no cached data yet (shouldn't normally happen) -->
+      <div class="text-center text-muted py-5">Loading project…</div>
+    }
+  }
+}

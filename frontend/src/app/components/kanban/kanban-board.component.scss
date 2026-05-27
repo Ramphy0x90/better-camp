@@ -1,0 +1,65 @@
+// 130px = main top padding (24) + header row with margin (58) + main bottom padding (24) + buffer (24)
+$board-height: calc(100vh - 130px);
+
+.kanban-board {
+  width: 100%;
+  height: $board-height;
+  align-items: stretch;   // columns fill the full height
+}
+
+.kanban-column {
+  flex: 1 1 0%;
+  min-width: 200px;
+  min-height: 0;          // allow flex child to shrink below content size
+  display: flex;
+  flex-direction: column;
+}
+
+.kanban-drop-zone {
+  flex: 1;
+  min-height: 0;          // required for overflow-y to work inside a flex child
+  overflow-y: auto;
+  transition: background-color 0.15s ease;
+
+  &.cdk-drop-list-dragging {
+    background-color: var(--bs-secondary-bg);
+  }
+}
+
+.kanban-card {
+  cursor: grab;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px);
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  opacity: 0.95;
+  border-radius: var(--bs-card-border-radius);
+  background: var(--bs-card-bg);
+  border: 1px solid var(--bs-card-border-color);
+  padding: 0.75rem;
+  width: 300px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.kanban-card-placeholder {
+  height: 60px;
+  background: var(--bs-secondary-bg);
+  border: 2px dashed var(--bs-border-color);
+}
+
+.border-top-3 {
+  border-top-width: 3px !important;
+}
